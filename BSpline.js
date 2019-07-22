@@ -1,19 +1,29 @@
 const
-    _ = require("./tools.js"),
-    Polynom = require("./Polynom.js"),
-    Spline = require("./Spline.js");
+    _ = require("./tools.js");
 
-class BSpline extends Polynom {
+class BSpline {
 
-    constructor(...coords) {
-        _.assert(coords.length > 2 && coords.every(coord => _.is.array(coord) && _.is.number(coord[0]) && _.is.number(coord[1])));
-        // TODO
+    constructor(...args) {
+        _.assert(args.length > 2 && args.every(_.is.number));
+        _.assert(args.every((val, index) => index == 0 || val > args[index - 1]));
+        let deg = args.length - 2;
+        let coeffs = new Array(deg + 2);
+        for (let k = 0; k < coeffs.length; k++) {
+            coeffs[k] = deg + 1;
+            for (let i = 0; i < coeffs.length; i++)
+                if (i != k) coeffs[k] *= 1 / (args[k] - args[i]);
+        }
+        _.define(this, '_deg', deg);
+        _.define(this, '_args', args);
+        _.define(this, '_coeffs', coeffs);
     } // BSpline#constructor
 
-    // constructor(args, values) {
-    //     _.assert(_.is.array(args) && _.is.array(values) && args.length > 2 && args.length === values.length && args.every(_.is.number) && values.every(_.is.number));
-    //     // TODO
-    // } // BSpline#constructor
+    calc(val) {
+        let sum = 0;
+        for (let k = 0; k < this._coeffs.length; k++)
+            sum += this._coeffs[k] * (Math.max(0, this._args[k] - val) ** this._deg);
+        return sum;
+    } // BSpline#calc
 
 } // BSpline
 
