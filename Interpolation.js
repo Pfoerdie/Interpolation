@@ -1,16 +1,12 @@
 const _ = require("./tools.js");
 
-function _defaultBase(n) {
-    return (x) => x ** n;
-} // _defaultBase
-
-function _defaultDeriv(n, k) {
+function _defaultGen(n, k) {
     if (n - k < 0) return (x) => 0;
     let j = n - k, q = 1;
-    for (let i = j; i <= n; i++)
+    for (let i = j + 1; i <= n; i++)
         q *= i;
     return (x) => q * (x ** j);
-} // _defaultDeriv
+} // _defaultGen
 
 _.define(exports, 'Polynom', Polynom);
 function Polynom(coeffs, base, ...derivations) {
@@ -25,9 +21,9 @@ function Polynom(coeffs, base, ...derivations) {
         _.assert(derivations.every(derivBase => _.is.array(derivBase) && derivBase.length == coeffs.length && derivBase.every(_.is.function)));
     } else {
         _.assert(derivations.length == 0);
-        base = coeffs.map((coeff, n) => _defaultBase(n));
+        base = coeffs.map((coeff, n) => _defaultGen(n, 0));
         for (let k = 1; k < coeffs.length; k++)
-            derivations.push(coeffs.map((coeff, n) => _defaultDeriv(n, k)));
+            derivations.push(coeffs.map((coeff, n) => _defaultGen(n, k)));
     }
     let P = (x) => coeffs.reduce((sum, coeff, n) => sum + coeff * base[n](x), 0);
     _.define(P, 'derive', function (k = 1) {
@@ -40,7 +36,7 @@ function Polynom(coeffs, base, ...derivations) {
 
 _.define(exports, 'BSpline', BSpline);
 function BSpline(args) {
-    _.assert(_.is.array(args) && args.length > 2 && args.every(_.is.number));
+    _.assert(_.is.array(args) && args.every(_.is.number));
     _.assert(args.length > 2 && args.every((val, index) => index == 0 || val > args[index - 1]));
     let coeffs = new Array(args.length);
     for (let k = 0; k < args.length; k++) {
@@ -65,5 +61,43 @@ function BSpline(args) {
 
 _.define(exports, 'Spline', Spline);
 function Spline(args, values, ...bndValues) {
-    // TODO
+    _.assert(_.is.array(args) && args.every(_.is.number));
+    _.assert(args.length >= 2 && args.every((val, index) => index == 0 || val > args[index - 1]));
+    _.assert(bndValues.every(bnd => _.is.array(bnd) && (bnd.length == 1 || bnd.length == 2) && bnd.every(_.is.number)));
+    let deg = bndValues.reduce((acc, bnd) => acc + bnd.length, 1);
+    let base = new Array(args.length + deg - 1);
+    for (let k = 0; k < base.length; k++) {
+        let i = k - deg, j = k + 1;
+        let baseArgs = args.slice(Math.max(0, i), Math.min(base.length, j + 1));
+        if (i < 0) baseArgs.unshift(...(new Array(-i).fill(null).map((val, n) => (args[1] - args[0]) * (n + i))));
+        if (j >= args.length) baseArgs.push(...(new Array(j - args.length + 1).fill(null).map((val, n) => args[args.length - 1] + (args[args.length - 1] - args[args.length - 2]) * (n + 1))));
+        base[k] = BSpline(baseArgs);
+    }
+    let deriv = bndValues.map((bnd, k) => base.map(bspline => bspline.derive(k + 1)));
+    let matrix = args.map(arg => base.map(baseFn => baseFn(arg)));
+    let coeffs = values.slice(0);
+    bndValues.forEach((bnd, k) => {
+        coeffs.unshift(bnd[0]);
+        matrix.unshift(deriv[k].map(derivFn => derivFn(args[0])));
+        if (bnd.length > 1) {
+            coeffs.push(bnd[1]);
+            matrix.push(deriv[k].map(derivFn => derivFn(args[args.length - 1])));
+        }
+    });
+    for (let i = 0; i < matrix.length; i++) {
+        _.assert(matrix[i][i] !== 0);
+        let p = 1 / matrix[i][i];
+        matrix[i] = matrix[i].map(val => val * p);
+        coeffs[i] *= p;
+        for (let j = 0; j < matrix.length; j++) {
+            if (i != j && matrix[j][i] !== 0) {
+                let q = -matrix[j][i];
+                coeffs[j] += q * coeffs[i];
+                for (let k = i; k < coeffs.length; k++) {
+                    matrix[j][k] += q * matrix[i][k];
+                }
+            }
+        }
+    }
+    return Polynom(coeffs, base, ...deriv);
 } // Spline
