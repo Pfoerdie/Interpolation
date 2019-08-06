@@ -62,6 +62,7 @@ function BSpline(args) {
 _.define(exports, 'Spline', Spline);
 function Spline(args, values, ...bndValues) {
     _.assert(_.is.array(args) && args.every(_.is.number));
+    _.assert(_.is.array(values) && values.every(_.is.number) && args.length == values.length);
     _.assert(args.length >= 2 && args.every((val, index) => index == 0 || val > args[index - 1]));
     _.assert(bndValues.every(bnd => _.is.array(bnd) && (bnd.length == 1 || bnd.length == 2) && bnd.every(_.is.number)));
     let deg = bndValues.reduce((acc, bnd) => acc + bnd.length, 1);
