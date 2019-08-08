@@ -150,6 +150,12 @@
             height: 0;
             padding-bottom: 50%;
         }
+
+        #csvFileInput {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+        }
     </style>
 </head>
 
@@ -159,40 +165,67 @@
     </div>
     <script>
 
+        function handleFiles(files) {
+            if (!FileReader) throw new Error("FileReader not available");
+            let reader = new FileReader();
+            reader.readAsText(files[0]);
+            reader.onerror = console.error;
+            reader.onload = (event) => loadCSV(event.target.result);
+        }
+
+        function loadCSV(csv) {
+            console.dir(csv);
+            let rows = csv.split("\n").map(row => row.split(";").map(cell => cell.trim()));
+            let header = rows.shift();
+            if (header[0] == "args" && header[1] == "values") {
+                let args = [], values = [];
+                for (let row of rows) {
+                    let x = parseFloat(row[0]), y = parseFloat(row[1]);
+                    if (!isNaN(x) && !isNaN(y)) {
+                        args.push(x);
+                        values.push(y);
+                    }
+                }
+                displayGraph(args, values);
+            }
+        }
+
+        function displayGraph(args, values) {
+            let
+                graph = document.getElementById("graph"),
+                count = 1000,
+                spline = new Spline(args, values, [0, 0]),
+                minX = args[0],
+                maxX = args[args.length - 1],
+                stepX = (maxX - minX) / count,
+                splineArgs = new Array(count).fill(0).map((val, ind) => minX + stepX * ind),
+                splineValues = splineArgs.map(val => spline(val));
+
+            Plotly.newPlot(graph, [
+                {
+                    name: "Values",
+                    mode: "markers",
+                    x: args,
+                    y: values
+                },
+                {
+                    name: "Interpolation",
+                    mode: "lines",
+                    x: splineArgs,
+                    y: splineValues
+                }
+            ], { title: "Spline Interpolation" });
+        }
+
         /**
          * Hier können die Messwerte angepasst werden.
          * Args sind die x-Werte und values sind die y-Werte.
          */
-
-        let
-            args = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            values = [0, .4, .5, .1, .2, .1, .6, .4, .5, .2, 0];
-
-        let
-            count = 1000,
-            spline = new Spline(args, values, [0, 0]),
-            minX = args[0],
-            maxX = args[args.length - 1],
-            stepX = (maxX - minX) / count,
-            splineArgs = new Array(count).fill(0).map((val, ind) => minX + stepX * ind),
-            splineValues = splineArgs.map(val => spline(val));
-
-        Plotly.plot("graph", [
-            {
-                name: "Values",
-                mode: "markers",
-                x: args,
-                y: values
-            },
-            {
-                name: "Interpolation",
-                mode: "lines",
-                x: splineArgs,
-                y: splineValues
-            }
-        ], { title: "Spline Interpolation" });
+        displayGraph([0, 1, 2, 3], [0, 1, 1, 0]);
 
     </script>
+
+    <input type="file" id="csvFileInput" onchange="handleFiles(this.files)" accept=".csv">
 </body>
 
 </html>
