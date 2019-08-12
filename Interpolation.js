@@ -70,7 +70,7 @@ function Spline(args, values, ...bndValues) {
     for (let k = 0; k < base.length; k++) {
         let i = k - deg, j = k + 1;
         let baseArgs = args.slice(Math.max(0, i), Math.min(base.length, j + 1));
-        if (i < 0) baseArgs.unshift(...(new Array(-i).fill(null).map((val, n) => (args[1] - args[0]) * (n + i))));
+        if (i < 0) baseArgs.unshift(...(new Array(-i).fill(null).map((val, n) => args[0] + (args[1] - args[0]) * (n + i))));
         if (j >= args.length) baseArgs.push(...(new Array(j - args.length + 1).fill(null).map((val, n) => args[args.length - 1] + (args[args.length - 1] - args[args.length - 2]) * (n + 1))));
         base[k] = BSpline(baseArgs);
     }
