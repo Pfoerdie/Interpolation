@@ -17,6 +17,7 @@ exports.assert = function assert(value, msg, errType = Error) {
 
 exports.is = {
     number: val => typeof val === 'number' && !isNaN(val) && val > - Infinity && val < Infinity,
+    uInt: val => exports.is.number(val) && val === Math.trunc(val) && val >= 0,
     array: val => Array.isArray(val),
     function: val => typeof val === 'function'
 }; // exports.is
