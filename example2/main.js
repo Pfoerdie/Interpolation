@@ -20,7 +20,7 @@ $(document).ready(function () {
 function load_5Sensor_Interpl(results, file) {
 
     let avgOf = 4;
-    let slowDown = 4;
+    let slowDown = 5;
 
     let dataArr = new Array(Math.trunc(results.data.length / avgOf));
     for (let i = 0; i < dataArr.length; i++) {
@@ -115,7 +115,7 @@ function load_5Sensor_Interpl(results, file) {
 function load_7Sensor_Interpl(results, file) {
 
     let avgOf = 4;
-    let slowDown = 4;
+    let slowDown = 5;
 
     let dataArr = new Array(Math.trunc(results.data.length / avgOf));
     for (let i = 0; i < dataArr.length; i++) {
